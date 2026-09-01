@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Controle Fonoaudiologia</title>
+  
+  <!-- Configurações PWA e Manifesto Integrado -->
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="FonoApp">
+  <link rel="icon" type="image/png" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --bg: #f3f4f6;
+      --card: #ffffff;
+      --text: #1f2937;
+      --danger: #ef4444;
+      --success: #10b981;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 16px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* BANNER PWA INSTALAÇÃO */
+    #installContainer {
+      display: none;
+      margin-bottom: 8px;
+    }
+
+    .btn-install {
+      width: 100%;
+      background-color: #10b981;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 14px;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    /* NAV NAVEGAÇÃO POR ABAS */
+    .nav-tabs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      background: #e5e7eb;
+      padding: 4px;
+      border-radius: 8px;
+      gap: 4px;
+    }
+
+    .tab-btn {
+      padding: 10px 2px;
+      border: none;
+      background: none;
+      font-weight: 600;
+      font-size: 11px;
+      color: #6b7280;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      background: var(--card);
+      color: var(--primary);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .card {
+      background: var(--card);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      margin-bottom: 16px;
+    }
+
+    h2 { margin-top: 0; font-size: 18px; }
+    h3 { margin: 12px 0 8px 0; font-size: 15px; color: var(--primary); }
+    
+    .form-group { margin-bottom: 12px; }
+    label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    input, select { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+
+    button.btn-submit { width: 100%; background-color: var(--primary); color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; font-size: 16px; cursor: pointer; }
+
+    .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 10px; }
+    .stat-box { background: #f9fafb; padding: 10px; border-radius: 8px; border: 1px solid #e5e7eb; text-align: center; }
+    .stat-box span { display: block; font-size: 11px; color: #6b7280; }
+    .stat-box strong { font-size: 15px; }
+
+    .table-container { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+    th, td { padding: 8px; border-bottom: 1px solid #e5e7eb; }
+    th { background-color: #f9fafb; }
+
+    .btn-token { border: none; color: white; padding: 5px 10px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 11px; }
+    .btn-token.pending { background-color: var(--danger); }
+    .btn-token.paid { background-color: var(--success); }
+    
+    .action-btn { background: none; border: none; cursor: pointer; font-size: 15px; padding: 2px 4px; }
+    .btn-edit { color: var(--primary); }
+    .btn-delete { color: #9ca3af; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  
+  <!-- BANNER PARA ADICIONAR À TELA INICIAL -->
+  <div id="installContainer">
+    <button class="btn-install" id="btnInstall">📲 Instalar FonoApp na Tela Inicial</button>
+  </div>
+
+  <div class="nav-tabs">
+    <button class="tab-btn active" onclick="switchTab('atendimentos')">Atend.</button>
+    <button class="tab-btn" onclick="switchTab('pacientes')">Pacientes</button>
+    <button class="tab-btn" onclick="switchTab('relatorio')">Relatório</button>
+    <button class="tab-btn" onclick="switchTab('config')">Config</button>
+  </div>
+
+  <!-- ABA 1: ATENDIMENTOS -->
+  <div id="tab-atendimentos" class="tab-content active">
+    <div class="card">
+      <h2>Novo Atendimento</h2>
+      <form id="appointmentForm">
+        <div class="form-group">
+          <label for="selectPatient">Paciente Cadastrado</label>
+          <select id="selectPatient" required onchange="autoFillNextAppointment()"></select>
+        </div>
+        
+        <div style="display:flex; gap:10px;">
+          <div class="form-group" style="flex:1">
+            <label for="date">Data</label>
+            <input type="date" id="date" required>
+          </div>
+          <div class="form-group" style="flex:1">
+            <label for="time">Hora</label>
+            <input type="time" id="time" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="clinic">Clínica</label>
+          <select id="clinic" required>
+            <option value="Porto">Porto</option>
+            <option value="Boituva">Boituva</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="type">Tipo de Consulta</label>
+          <select id="type" required></select>
+        </div>
+
+        <button type="submit" class="btn-submit">Registrar Atendimento</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Histórico (Ordenado por Data)</h2>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Paciente</th>
+              <th>Clínica</th>
+              <th>Tipo</th>
+              <th>Token</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="appointmentsList"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ABA 2: PACIENTES -->
+  <div id="tab-pacientes" class="tab-content">
+    <div class="card">
+      <h2>Cadastrar Paciente</h2>
+      <form id="patientForm">
+        <div class="form-group">
+          <label for="newPatientName">Nome Completo</label>
+          <input type="text" id="newPatientName" placeholder="Ex: Lucas Silva" required>
+        </div>
+        <button type="submit" class="btn-submit">Salvar Paciente</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Pacientes Cadastrados</h2>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr><th>Nome</th><th style="text-align: right;">Ações</th></tr>
+          </thead>
+          <tbody id="patientsList"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ABA 3: RELATÓRIO POR PERÍODO E CLÍNICA -->
+  <div id="tab-relatorio" class="tab-content">
+    <div class="card">
+      <h2>Filtro de Período</h2>
+      <div style="display:flex; gap:10px; margin-bottom:12px;">
+        <div style="flex:1">
+          <label for="dateStart">De</label>
+          <input type="date" id="dateStart">
+        </div>
+        <div style="flex:1">
+          <label for="dateEnd">Até</label>
+          <input type="date" id="dateEnd">
+        </div>
+      </div>
+      <button class="btn-submit" onclick="filtrarRelatorio()">Gerar Relatório</button>
+    </div>
+
+    <div class="card">
+      <h2>Resumo do Período</h2>
+
+      <h3>Clínica Porto</h3>
+      <div class="stats">
+        <div class="stat-box">
+          <span>Recebido (Verde)</span>
+          <strong id="portoPaid" style="color:var(--success)">R$ 0,00</strong>
+        </div>
+        <div class="stat-box">
+          <span>A Receber (Vermelho)</span>
+          <strong id="portoPending" style="color:var(--danger)">R$ 0,00</strong>
+        </div>
+      </div>
+
+      <h3>Clínica Boituva</h3>
+      <div class="stats">
+        <div class="stat-box">
+          <span>Recebido (Verde)</span>
+          <strong id="boituvaPaid" style="color:var(--success)">R$ 0,00</strong>
+        </div>
+        <div class="stat-box">
+          <span>A Receber (Vermelho)</span>
+          <strong id="boituvaPending" style="color:var(--danger)">R$ 0,00</strong>
+        </div>
+      </div>
+
+      <hr style="border:0; border-top:1px solid #e5e7eb; margin:16px 0;">
+
+      <h3>Total Geral Somado</h3>
+      <div class="stats">
+        <div class="stat-box">
+          <span>Total Recebido</span>
+          <strong id="totalPaid" style="color:var(--success)">R$ 0,00</strong>
+        </div>
+        <div class="stat-box">
+          <span>Total A Receber</span>
+          <strong id="totalPending" style="color:var(--danger)">R$ 0,00</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ABA 4: CONFIGURAÇÕES DE TIPOS E VALORES -->
+  <div id="tab-config" class="tab-content">
+    <div class="card">
+      <h2>Novo Tipo / Valor</h2>
+      <form id="priceForm">
+        <div class="form-group">
+          <label for="newTypeName">Tipo</label>
+          <input type="text" id="newTypeName" placeholder="Ex: Social" required>
+        </div>
+        <div class="form-group">
+          <label for="newTypePrice">Valor (R$)</label>
+          <input type="number" step="0.01" id="newTypePrice" placeholder="Ex: 50.00" required>
+        </div>
+        <button type="submit" class="btn-submit">Salvar Tipo/Valor</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Tipos de Consulta Atuais</h2>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr><th>Tipo</th><th>Valor</th><th></th></tr>
+          </thead>
+          <tbody id="typesList"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const defaultPrices = { 'ABA': 40, 'Normal': 34, 'Particular': 80, 'Social': 50 };
+
+  let customPrices = JSON.parse(localStorage.getItem('fono_prices')) || defaultPrices;
+  let patients = JSON.parse(localStorage.getItem('fono_patients')) || [];
+  let appointments = JSON.parse(localStorage.getItem('fono_appointments')) || [];
+
+  // DEFINIR DATA E HORA INICIAIS COMO PADRÃO
+  function setDefaultDateTime() {
+    const today = new Date();
+    document.getElementById('date').value = today.toISOString().split('T')[0];
+    document.getElementById('time').value = today.toTimeString().slice(0,5);
+  }
+  setDefaultDateTime();
+
+  // ALTERNAR ABAS
+  function switchTab(tabName) {
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    
+    const map = { 'atendimentos': 0, 'pacientes': 1, 'relatorio': 2, 'config': 3 };
+    document.querySelectorAll('.tab-btn')[map[tabName]].classList.add('active');
+    document.getElementById(`tab-${tabName}`).classList.add('active');
+  }
+
+  // PREENCHER AUTOMATICAMENTE PRÓXIMA SEMANA DO PACIENTE SELECIONADO
+  function autoFillNextAppointment() {
+    const selectedPatient = document.getElementById('selectPatient').value;
+    if (!selectedPatient) return;
+
+    // Busca atendimentos do paciente escolhido
+    const patientApps = appointments.filter(a => a.patientName === selectedPatient);
+
+    if (patientApps.length > 0) {
+      // Ordena do mais recente para o mais antigo
+      patientApps.sort((a, b) => new Date(`${b.date}T${b.time || '00:00'}`) - new Date(`${a.date}T${a.time || '00:00'}`));
+      
+      const lastApp = patientApps[0];
+      if (lastApp.date) {
+        // Calcula 7 dias à frente (próxima semana no mesmo dia)
+        const parts = lastApp.date.split('-');
+        const lastDate = new Date(parts[0], parts[1] - 1, parts[2]);
+        lastDate.setDate(lastDate.getDate() + 7);
+
+        const nextYear = lastDate.getFullYear();
+        const nextMonth = String(lastDate.getMonth() + 1).padStart(2, '0');
+        const nextDay = String(lastDate.getDate()).padStart(2, '0');
+
+        document.getElementById('date').value = `${nextYear}-${nextMonth}-${nextDay}`;
+        if (lastApp.time) document.getElementById('time').value = lastApp.time;
+        if (lastApp.clinic) document.getElementById('clinic').value = lastApp.clinic;
+        if (lastApp.type) document.getElementById('type').value = lastApp.type;
+      }
+    } else {
+      setDefaultDateTime();
+    }
+  }
+
+  // GERENCIAR PREÇOS
+  const priceForm = document.getElementById('priceForm');
+  const typesList = document.getElementById('typesList');
+  const selectType = document.getElementById('type');
+
+  function savePrices() {
+    localStorage.setItem('fono_prices', JSON.stringify(customPrices));
+    renderPrices();
+    renderAppointments();
+  }
+
+  priceForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = document.getElementById('newTypeName').value.trim();
+    const price = parseFloat(document.getElementById('newTypePrice').value);
+
+    if (name && !isNaN(price)) {
+      customPrices[name] = price;
+      savePrices();
+      priceForm.reset();
+    }
+  });
+
+  function deleteType(typeName) {
+    delete customPrices[typeName];
+    savePrices();
+  }
+
+  function renderPrices() {
+    typesList.innerHTML = '';
+    selectType.innerHTML = '';
+
+    Object.keys(customPrices).forEach(type => {
+      const price = parseFloat(customPrices[type]) || 0;
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><strong>${type}</strong></td>
+        <td>R$ ${price.toFixed(2).replace('.', ',')}</td>
+        <td><button class="action-btn btn-delete" onclick="deleteType('${type}')">&times;</button></td>
+      `;
+      typesList.appendChild(tr);
+
+      const option = document.createElement('option');
+      option.value = type;
+      option.textContent = `${type} (R$ ${price.toFixed(2).replace('.', ',')})`;
+      selectType.appendChild(option);
+    });
+  }
+
+  // GERENCIAR PACIENTES
+  const patientForm = document.getElementById('patientForm');
+  const patientsList = document.getElementById('patientsList');
+  const selectPatient = document.getElementById('selectPatient');
+
+  function savePatients() {
+    localStorage.setItem('fono_patients', JSON.stringify(patients));
+    renderPatients();
+  }
+
+  patientForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const nameInput = document.getElementById('newPatientName');
+    if (nameInput.value.trim()) {
+      patients.push({ id: Date.now().toString(), name: nameInput.value.trim() });
+      savePatients();
+      nameInput.value = '';
+      switchTab('atendimentos');
+      autoFillNextAppointment();
+    }
+  });
+
+  function editPatient(id) {
+    const patient = patients.find(p => p.id === id);
+    if (!patient) return;
+
+    const newName = prompt("Editar nome do paciente:", patient.name);
+    if (newName && newName.trim() !== "") {
+      const oldName = patient.name;
+      patient.name = newName.trim();
+      
+      appointments = appointments.map(app => {
+        if (app.patientName === oldName) return { ...app, patientName: patient.name };
+        return app;
+      });
+
+      localStorage.setItem('fono_appointments', JSON.stringify(appointments));
+      savePatients();
+      renderAppointments();
+    }
+  }
+
+  function deletePatient(id) {
+    if (confirm("Deseja realmente excluir este paciente?")) {
+      patients = patients.filter(p => p.id !== id);
+      savePatients();
+    }
+  }
+
+  function renderPatients() {
+    patientsList.innerHTML = '';
+    selectPatient.innerHTML = '';
+
+    if (patients.length === 0) {
+      selectPatient.innerHTML = '<option value="">Nenhum paciente cadastrado</option>';
+    } else {
+      patients.forEach(p => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${p.name}</strong></td>
+          <td style="text-align: right;">
+            <button class="action-btn btn-edit" onclick="editPatient('${p.id}')">✏️</button>
+            <button class="action-btn btn-delete" onclick="deletePatient('${p.id}')">&times;</button>
+          </td>
+        `;
+        patientsList.appendChild(tr);
+
+        const option = document.createElement('option');
+        option.value = p.name;
+        option.textContent = p.name;
+        selectPatient.appendChild(option);
+      });
+      autoFillNextAppointment();
+    }
+  }
+
+  // GERENCIAR ATENDIMENTOS (ORDENAÇÃO POR DATA)
+  const appointmentForm = document.getElementById('appointmentForm');
+  const appointmentsList = document.getElementById('appointmentsList');
+
+  function saveAppointments() {
+    localStorage.setItem('fono_appointments', JSON.stringify(appointments));
+    renderAppointments();
+    filtrarRelatorio();
+  }
+
+  appointmentForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    if (patients.length === 0) {
+      alert('Cadastre pelo menos um paciente na aba "Pacientes" antes de agendar.');
+      return;
+    }
+
+    const type = selectType.value;
+    const price = parseFloat(customPrices[type]) || 0;
+
+    const newAppointment = {
+      id: Date.now().toString(),
+      patientName: selectPatient.value,
+      date: document.getElementById('date').value,
+      time: document.getElementById('time').value,
+      clinic: document.getElementById('clinic').value,
+      type: type,
+      price: price,
+      paid: false
+    };
+
+    appointments.push(newAppointment);
+    saveAppointments();
+    autoFillNextAppointment();
+  });
+
+  function toggleToken(id) {
+    appointments = appointments.map(app => {
+      if (app.id === id) return { ...app, paid: !app.paid };
+      return app;
+    });
+    saveAppointments();
+  }
+
+  function deleteAppointment(id) {
+    if (confirm("Deseja remover este atendimento do histórico?")) {
+      appointments = appointments.filter(app => app.id !== id);
+      saveAppointments();
+    }
+  }
+
+  function renderAppointments() {
+    appointmentsList.innerHTML = '';
+
+    const sortedAppointments = [...appointments].sort((a, b) => {
+      const dateTimeA = new Date(`${a.date}T${a.time || '00:00'}`);
+      const dateTimeB = new Date(`${b.date}T${b.time || '00:00'}`);
+      return dateTimeB - dateTimeA;
+    });
+
+    sortedAppointments.forEach(app => {
+      const isPaid = (app.paid === true || app.paid === 'true');
+      const dateFormatted = app.date ? app.date.split('-').reverse().join('/') : '';
+      const price = parseFloat(app.price) || parseFloat(customPrices[app.type]) || 0;
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><small>${dateFormatted} ${app.time || ''}</small></td>
+        <td><strong>${app.patientName}</strong></td>
+        <td>${app.clinic}</td>
+        <td>${app.type} (R$ ${price.toFixed(2).replace('.', ',')})</td>
+        <td>
+          <button 
+            class="btn-token ${isPaid ? 'paid' : 'pending'}"
+            onclick="toggleToken('${app.id}')">
+            ${isPaid ? 'Passado' : 'Token'}
+          </button>
+        </td>
+        <td>
+          <button class="action-btn btn-delete" onclick="deleteAppointment('${app.id}')">&times;</button>
+        </td>
+      `;
+      appointmentsList.appendChild(tr);
+    });
+  }
+
+  // GERAR RELATÓRIO
+  function filtrarRelatorio() {
+    const start = document.getElementById('dateStart').value;
+    const end = document.getElementById('dateEnd').value;
+
+    let portoPaid = 0, portoPending = 0;
+    let boituvaPaid = 0, boituvaPending = 0;
+
+    appointments.forEach(app => {
+      if ((!start || app.date >= start) && (!end || app.date <= end)) {
+        const price = parseFloat(app.price) || parseFloat(customPrices[app.type]) || 0;
+        const isPaid = (app.paid === true || app.paid === 'true');
+
+        if (app.clinic === 'Porto') {
+          if (isPaid) portoPaid += price;
+          else portoPending += price;
+        } else if (app.clinic === 'Boituva') {
+          if (isPaid) boituvaPaid += price;
+          else boituvaPending += price;
+        }
+      }
+    });
+
+    document.getElementById('portoPaid').textContent = `R$ ${portoPaid.toFixed(2).replace('.', ',')}`;
+    document.getElementById('portoPending').textContent = `R$ ${portoPending.toFixed(2).replace('.', ',')}`;
+
+    document.getElementById('boituvaPaid').textContent = `R$ ${boituvaPaid.toFixed(2).replace('.', ',')}`;
+    document.getElementById('boituvaPending').textContent = `R$ ${boituvaPending.toFixed(2).replace('.', ',')}`;
+
+    document.getElementById('totalPaid').textContent = `R$ ${(portoPaid + boituvaPaid).toFixed(2).replace('.', ',')}`;
+    document.getElementById('totalPending').textContent = `R$ ${(portoPending + boituvaPending).toFixed(2).replace('.', ',')}`;
+  }
+
+  // GERENCIAR INSTALAÇÃO DO PWA
+  let deferredPrompt;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    document.getElementById('installContainer').style.display = 'block';
+  });
+
+  document.getElementById('btnInstall').addEventListener('click', async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        document.getElementById('installContainer').style.display = 'none';
+      }
+      deferredPrompt = null;
+    }
+  });
+
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js')
+      .catch(err => console.warn('Service Worker não registrado:', err));
+  });
+}
+
+  // INICIALIZAÇÃO
+  renderPrices();
+  renderPatients();
+  renderAppointments();
+  filtrarRelatorio();
+</script>
+
+</body>
+</html>
