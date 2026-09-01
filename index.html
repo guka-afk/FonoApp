@@ -10,8 +10,8 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="FonoApp">
-  <link rel="icon" type="image/png" href="icon-192.png">
-  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.json">
 
   <style>
@@ -133,7 +133,7 @@
   
   <!-- BANNER PARA ADICIONAR À TELA INICIAL -->
   <div id="installContainer">
-    <button class="btn-install" id="btnInstall">📲 Instalar FonoApp na Tela Inicial</button>
+    <button class="btn-install" id="btnInstall">📲 Baixar App na Área de Trabalho</button>
   </div>
 
   <div class="nav-tabs">
@@ -643,12 +643,12 @@
   });
 
 
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./service-worker.js')
-      .catch(err => console.warn('Service Worker não registrado:', err));
-  });
-}
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./service-worker.js')
+        .catch(err => console.warn('Service Worker não registrado:', err));
+    });
+  }
 
   // INICIALIZAÇÃO
   renderPrices();
