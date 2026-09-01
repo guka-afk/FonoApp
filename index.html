@@ -2,17 +2,16 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Controle Fonoaudiologia</title>
   
-  <!-- Configurações PWA e Manifesto Integrado -->
   <meta name="theme-color" content="#4f46e5">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="FonoApp">
-  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
-  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3063/3063822.png">
+  <link rel="manifest" href='data:application/manifest+json,{"name":"Controle Fonoaudiologia","short_name":"FonoApp","start_url":".","display":"standalone","background_color":"#f3f4f6","theme_color":"#4f46e5","icons":[{"src":"https://cdn-icons-png.flaticon.com/512/3063/3063822.png","sizes":"512x512","type":"image/png"}]}'>
 
   <style>
     :root {
@@ -42,26 +41,6 @@
       gap: 16px;
     }
 
-    /* BANNER PWA INSTALAÇÃO */
-    #installContainer {
-      display: none;
-      margin-bottom: 8px;
-    }
-
-    .btn-install {
-      width: 100%;
-      background-color: #10b981;
-      color: white;
-      border: none;
-      padding: 12px;
-      border-radius: 8px;
-      font-weight: bold;
-      font-size: 14px;
-      cursor: pointer;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    /* NAV NAVEGAÇÃO POR ABAS */
     .nav-tabs {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -107,6 +86,7 @@
     input, select { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
 
     button.btn-submit { width: 100%; background-color: var(--primary); color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; font-size: 16px; cursor: pointer; }
+    button.btn-secondary { width: 100%; background-color: #4b5563; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 14px; cursor: pointer; margin-top: 6px; }
 
     .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 10px; }
     .stat-box { background: #f9fafb; padding: 10px; border-radius: 8px; border: 1px solid #e5e7eb; text-align: center; }
@@ -130,11 +110,6 @@
 <body>
 
 <div class="container">
-  
-  <!-- BANNER PARA ADICIONAR À TELA INICIAL -->
-  <div id="installContainer">
-    <button class="btn-install" id="btnInstall">📲 Baixar App na Área de Trabalho</button>
-  </div>
 
   <div class="nav-tabs">
     <button class="tab-btn active" onclick="switchTab('atendimentos')">Atend.</button>
@@ -143,7 +118,6 @@
     <button class="tab-btn" onclick="switchTab('config')">Config</button>
   </div>
 
-  <!-- ABA 1: ATENDIMENTOS -->
   <div id="tab-atendimentos" class="tab-content active">
     <div class="card">
       <h2>Novo Atendimento</h2>
@@ -201,7 +175,6 @@
     </div>
   </div>
 
-  <!-- ABA 2: PACIENTES -->
   <div id="tab-pacientes" class="tab-content">
     <div class="card">
       <h2>Cadastrar Paciente</h2>
@@ -227,7 +200,6 @@
     </div>
   </div>
 
-  <!-- ABA 3: RELATÓRIO POR PERÍODO E CLÍNICA -->
   <div id="tab-relatorio" class="tab-content">
     <div class="card">
       <h2>Filtro de Período</h2>
@@ -287,8 +259,22 @@
     </div>
   </div>
 
-  <!-- ABA 4: CONFIGURAÇÕES DE TIPOS E VALORES -->
   <div id="tab-config" class="tab-content">
+    <div class="card">
+      <h2>Transferência de Dados (Backup)</h2>
+      <p style="font-size: 12px; color: #6b7280; margin-top: -8px;">Use esta opção para mover os dados do arquivo do celular para a versão do GitHub.</p>
+      
+      <button class="btn-secondary" onclick="exportData()">📥 Exportar Backup (Baixar Dados)</button>
+      
+      <hr style="border:0; border-top:1px solid #e5e7eb; margin:14px 0;">
+      
+      <div class="form-group">
+        <label for="importFile" style="font-size: 13px;">Selecione o arquivo baixado para carregar:</label>
+        <input type="file" id="importFile" accept=".json">
+      </div>
+      <button class="btn-submit" onclick="importData()">📤 Importar Backup</button>
+    </div>
+
     <div class="card">
       <h2>Novo Tipo / Valor</h2>
       <form id="priceForm">
@@ -326,7 +312,6 @@
   let patients = JSON.parse(localStorage.getItem('fono_patients')) || [];
   let appointments = JSON.parse(localStorage.getItem('fono_appointments')) || [];
 
-  // DEFINIR DATA E HORA INICIAIS COMO PADRÃO
   function setDefaultDateTime() {
     const today = new Date();
     document.getElementById('date').value = today.toISOString().split('T')[0];
@@ -334,7 +319,6 @@
   }
   setDefaultDateTime();
 
-  // ALTERNAR ABAS
   function switchTab(tabName) {
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
@@ -344,21 +328,17 @@
     document.getElementById(`tab-${tabName}`).classList.add('active');
   }
 
-  // PREENCHER AUTOMATICAMENTE PRÓXIMA SEMANA DO PACIENTE SELECIONADO
   function autoFillNextAppointment() {
     const selectedPatient = document.getElementById('selectPatient').value;
     if (!selectedPatient) return;
 
-    // Busca atendimentos do paciente escolhido
     const patientApps = appointments.filter(a => a.patientName === selectedPatient);
 
     if (patientApps.length > 0) {
-      // Ordena do mais recente para o mais antigo
       patientApps.sort((a, b) => new Date(`${b.date}T${b.time || '00:00'}`) - new Date(`${a.date}T${a.time || '00:00'}`));
       
       const lastApp = patientApps[0];
       if (lastApp.date) {
-        // Calcula 7 dias à frente (próxima semana no mesmo dia)
         const parts = lastApp.date.split('-');
         const lastDate = new Date(parts[0], parts[1] - 1, parts[2]);
         lastDate.setDate(lastDate.getDate() + 7);
@@ -375,6 +355,62 @@
     } else {
       setDefaultDateTime();
     }
+  }
+
+  // EXPORTAR E IMPORTAR BACKUP
+  function exportData() {
+    const backupData = {
+      fono_prices: customPrices,
+      fono_patients: patients,
+      fono_appointments: appointments
+    };
+
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `backup_fono_${new Date().toISOString().split('T')[0]}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  }
+
+  function importData() {
+    const fileInput = document.getElementById('importFile');
+    const file = fileInput.files[0];
+
+    if (!file) {
+      alert("Por favor, selecione um arquivo de backup (.json) primeiro.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const imported = JSON.parse(e.target.result);
+        if (imported.fono_patients && imported.fono_appointments) {
+          localStorage.setItem('fono_prices', JSON.stringify(imported.fono_prices || defaultPrices));
+          localStorage.setItem('fono_patients', JSON.stringify(imported.fono_patients));
+          localStorage.setItem('fono_appointments', JSON.stringify(imported.fono_appointments));
+
+          customPrices = imported.fono_prices || defaultPrices;
+          patients = imported.fono_patients;
+          appointments = imported.fono_appointments;
+
+          renderPrices();
+          renderPatients();
+          renderAppointments();
+          filtrarRelatorio();
+
+          alert("Dados importados com sucesso!");
+          switchTab('atendimentos');
+        } else {
+          alert("Arquivo de backup inválido.");
+        }
+      } catch (err) {
+        alert("Erro ao ler o arquivo de backup.");
+      }
+    };
+    reader.readAsText(file);
   }
 
   // GERENCIAR PREÇOS
@@ -503,7 +539,7 @@
     }
   }
 
-  // GERENCIAR ATENDIMENTOS (ORDENAÇÃO POR DATA)
+  // GERENCIAR ATENDIMENTOS
   const appointmentForm = document.getElementById('appointmentForm');
   const appointmentsList = document.getElementById('appointmentsList');
 
@@ -590,7 +626,7 @@
     });
   }
 
-  // GERAR RELATÓRIO
+  // RELATÓRIOS
   function filtrarRelatorio() {
     const start = document.getElementById('dateStart').value;
     const end = document.getElementById('dateEnd').value;
@@ -623,34 +659,6 @@
     document.getElementById('totalPending').textContent = `R$ ${(portoPending + boituvaPending).toFixed(2).replace('.', ',')}`;
   }
 
-  // GERENCIAR INSTALAÇÃO DO PWA
-  let deferredPrompt;
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    document.getElementById('installContainer').style.display = 'block';
-  });
-
-  document.getElementById('btnInstall').addEventListener('click', async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        document.getElementById('installContainer').style.display = 'none';
-      }
-      deferredPrompt = null;
-    }
-  });
-
-
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./service-worker.js')
-        .catch(err => console.warn('Service Worker não registrado:', err));
-    });
-  }
-
-  // INICIALIZAÇÃO
   renderPrices();
   renderPatients();
   renderAppointments();
