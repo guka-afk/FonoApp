@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fonoapp-v2';
+const CACHE_NAME = 'fonoapp-v3';
 const APP_SHELL = [
   './',
   './index.html',
