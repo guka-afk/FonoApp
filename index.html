@@ -41,6 +41,24 @@
       gap: 16px;
     }
 
+    #installContainer {
+      display: none;
+      margin-bottom: 8px;
+    }
+
+    .btn-install {
+      width: 100%;
+      background-color: #10b981;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 14px;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
     .nav-tabs {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -86,7 +104,6 @@
     input, select { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
 
     button.btn-submit { width: 100%; background-color: var(--primary); color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; font-size: 16px; cursor: pointer; }
-    button.btn-secondary { width: 100%; background-color: #4b5563; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 14px; cursor: pointer; margin-top: 6px; }
 
     .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 10px; }
     .stat-box { background: #f9fafb; padding: 10px; border-radius: 8px; border: 1px solid #e5e7eb; text-align: center; }
@@ -105,11 +122,39 @@
     .action-btn { background: none; border: none; cursor: pointer; font-size: 15px; padding: 2px 4px; }
     .btn-edit { color: var(--primary); }
     .btn-delete { color: #9ca3af; }
+
+    button.btn-secondary { width: 100%; background-color: #4b5563; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 14px; cursor: pointer; margin-top: 6px; }
+
+    .btn-print { width: 100%; background-color: #fff; color: var(--primary); border: 2px solid var(--primary); padding: 12px; border-radius: 6px; font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 10px; }
+    .print-header { display: none; }
+    .status-paid { color: var(--success); font-weight: bold; }
+    .status-pending { color: var(--danger); font-weight: bold; }
+    .empty-row { text-align: center; color: #6b7280; padding: 16px; }
+
+    @media print {
+      @page { size: A4; margin: 12mm; }
+      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      body { background: #fff; padding: 0; display: block; }
+      .container { max-width: none; gap: 0; }
+      .nav-tabs, #installContainer, .no-print { display: none !important; }
+      .card { box-shadow: none; border: 1px solid #d1d5db; border-radius: 0; padding: 12px; margin-bottom: 12px; }
+      .print-header { display: block; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 2px solid var(--primary); }
+      .print-header h1 { margin: 0 0 4px 0; font-size: 20px; color: var(--primary); }
+      .print-header p { margin: 2px 0; font-size: 12px; }
+      .table-container { overflow: visible; }
+      table { font-size: 11px; }
+      thead { display: table-header-group; }
+      tr { page-break-inside: avoid; }
+    }
   </style>
 </head>
 <body>
 
 <div class="container">
+  
+  <div id="installContainer">
+    <button class="btn-install" id="btnInstall">📲 Baixar App na Área de Trabalho</button>
+  </div>
 
   <div class="nav-tabs">
     <button class="tab-btn active" onclick="switchTab('atendimentos')">Atend.</button>
@@ -201,7 +246,14 @@
   </div>
 
   <div id="tab-relatorio" class="tab-content">
-    <div class="card">
+    <div class="print-header">
+      <h1>Relatório de Atendimentos - Fonoaudiologia</h1>
+      <p><strong>Período:</strong> <span id="printPeriod"></span></p>
+      <p><strong>Emitido em:</strong> <span id="printGenerated"></span></p>
+      <p><strong>Total de atendimentos no período:</strong> <span id="printCount">0</span></p>
+    </div>
+
+    <div class="card no-print">
       <h2>Filtro de Período</h2>
       <div style="display:flex; gap:10px; margin-bottom:12px;">
         <div style="flex:1">
@@ -214,6 +266,7 @@
         </div>
       </div>
       <button class="btn-submit" onclick="filtrarRelatorio()">Gerar Relatório</button>
+      <button class="btn-print" onclick="imprimirRelatorio()">🖨️ Imprimir / Salvar em PDF</button>
     </div>
 
     <div class="card">
@@ -255,6 +308,26 @@
           <span>Total A Receber</span>
           <strong id="totalPending" style="color:var(--danger)">R$ 0,00</strong>
         </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Atendimentos do Período</h2>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Hora</th>
+              <th>Paciente</th>
+              <th>Clínica</th>
+              <th>Tipo</th>
+              <th>Valor</th>
+              <th>Situação</th>
+            </tr>
+          </thead>
+          <tbody id="reportList"></tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -414,7 +487,6 @@
     reader.readAsText(file);
   }
 
-  // GERENCIAR PREÇOS
   const priceForm = document.getElementById('priceForm');
   const typesList = document.getElementById('typesList');
   const selectType = document.getElementById('type');
@@ -464,7 +536,6 @@
     });
   }
 
-  // GERENCIAR PACIENTES
   const patientForm = document.getElementById('patientForm');
   const patientsList = document.getElementById('patientsList');
   const selectPatient = document.getElementById('selectPatient');
@@ -540,7 +611,6 @@
     }
   }
 
-  // GERENCIAR ATENDIMENTOS
   const appointmentForm = document.getElementById('appointmentForm');
   const appointmentsList = document.getElementById('appointmentsList');
 
@@ -627,13 +697,47 @@
     });
   }
 
-  // RELATÓRIOS
   function filtrarRelatorio() {
     const start = document.getElementById('dateStart').value;
     const end = document.getElementById('dateEnd').value;
 
     let portoPaid = 0, portoPending = 0;
     let boituvaPaid = 0, boituvaPending = 0;
+
+    const filtered = appointments
+      .filter(app => (!start || app.date >= start) && (!end || app.date <= end))
+      .sort((a, b) => new Date(`${a.date}T${a.time || '00:00'}`) - new Date(`${b.date}T${b.time || '00:00'}`));
+
+    const fmtDate = d => d ? d.split('-').reverse().join('/') : '';
+    const fmtMoney = v => `R$ ${v.toFixed(2).replace('.', ',')}`;
+    const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+    const reportList = document.getElementById('reportList');
+    reportList.innerHTML = '';
+    if (filtered.length === 0) {
+      reportList.innerHTML = '<tr><td colspan="7" class="empty-row">Nenhum atendimento no período selecionado.</td></tr>';
+    }
+    filtered.forEach(app => {
+      const price = parseFloat(app.price) || parseFloat(customPrices[app.type]) || 0;
+      const isPaid = (app.paid === true || app.paid === 'true');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${fmtDate(app.date)}</td>
+        <td>${esc(app.time)}</td>
+        <td><strong>${esc(app.patientName)}</strong></td>
+        <td>${esc(app.clinic)}</td>
+        <td>${esc(app.type)}</td>
+        <td>${fmtMoney(price)}</td>
+        <td class="${isPaid ? 'status-paid' : 'status-pending'}">${isPaid ? 'Recebido' : 'A receber'}</td>
+      `;
+      reportList.appendChild(tr);
+    });
+
+    document.getElementById('printPeriod').textContent =
+      (!start && !end) ? 'Todos os períodos' :
+      `${start ? fmtDate(start) : 'início'} a ${end ? fmtDate(end) : 'hoje'}`;
+    document.getElementById('printGenerated').textContent = new Date().toLocaleString('pt-BR');
+    document.getElementById('printCount').textContent = filtered.length;
 
     appointments.forEach(app => {
       if ((!start || app.date >= start) && (!end || app.date <= end)) {
@@ -659,6 +763,29 @@
     document.getElementById('totalPaid').textContent = `R$ ${(portoPaid + boituvaPaid).toFixed(2).replace('.', ',')}`;
     document.getElementById('totalPending').textContent = `R$ ${(portoPending + boituvaPending).toFixed(2).replace('.', ',')}`;
   }
+
+  function imprimirRelatorio() {
+    filtrarRelatorio();
+    window.print();
+  }
+
+  let deferredPrompt;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    document.getElementById('installContainer').style.display = 'block';
+  });
+
+  document.getElementById('btnInstall').addEventListener('click', async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        document.getElementById('installContainer').style.display = 'none';
+      }
+      deferredPrompt = null;
+    }
+  });
 
   renderPrices();
   renderPatients();
